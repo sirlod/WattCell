@@ -2,32 +2,45 @@
 '''
 Created on 27/07/2024
 
-@author: Marcin Orzech
+@authors: Marcin Orzech, Ashley Willow
+
+This code defines classes of all battery components and the cell itself.
+It also has methods to perform all calculations
 '''
 
 from dataclasses import dataclass, field
 from typing import Dict, Any
 
 materials = {
-    'Cu': {'density': 8.94, 'thickness': 6},  # thickness in um
-    'Al': {'density': 2.7, 'thickness': 16},  # thickness in um
-    'Prussian Blue': {
-        'density': 1.8,  # in g/cm3
-        'capacity': 150,  # in Ah/kg
-        'voltage': 3.2  # in V
+    'current_collectors': {
+        'Al': {'density': 2.7, 'thickness': 16},  # thickness in um
+        'Cu': {'density': 8.94, 'thickness': 6},  # thickness in um
     },
-    'Hard Carbon': {
-        'capacity': 300,
-        'voltage': 0.1,
-        'density': 1.6
+    'cathodes':{
+        'Prussian Blue': {
+            'density': 1.8,  # in g/cm3
+            'capacity': 150,  # in Ah/kg
+            'voltage': 3.2  # in V
+        }
+    },
+    'anodes':{
+        'Hard Carbon': {
+            'capacity': 300,
+            'voltage': 0.1,
+            'density': 1.6
+        },
     },
     'SuperP': {'density': 1.9},
-    'PVDF': {'density': 1.78},
-    'CMC+SBR': {'density': (1.6+0.96)/2},
-    'Celgard 2325': {
-        'thickness': 25,  # in um
-        'porosity': 0.41,
-        'density': 0.74  # in g/cm³ from https://core.ac.uk/download/pdf/288499223.pdf
+    'binders':{
+        'PVDF': {'density': 1.78},
+        'CMC+SBR': {'density': (1.6+0.96)/2},
+    },
+    'separators':{
+        'Celgard 2325': {
+            'thickness': 25,  # in um
+            'porosity': 0.41,
+            'density': 0.74  # in g/cm³ from https://core.ac.uk/download/pdf/288499223.pdf
+        },
     },
     'pouch': {
         'thickness': 113,  # in um
@@ -38,6 +51,9 @@ materials = {
     'tabs': {
         'Al': {
             'density': 2.7
+        },
+        'Ni': {
+            'density': 8.9
         }
     },
     'electrolytes': {
@@ -76,13 +92,13 @@ class Electrode:
         volumes = {
             'am': self.mass_ratio['am'] / self.density_am,
             'carbon': self.mass_ratio['carbon'] / materials['SuperP']['density'],
-            'binder': self.mass_ratio['binder'] / materials[self.binder]['density']
+            'binder': self.mass_ratio['binder'] / materials['binders'][self.binder]['density']
         }
         volume_ratios = {k: v / sum(volumes.values()) for k, v in volumes.items()}
         self.density = (1 - self.porosity) * (
             volume_ratios['am'] * self.density_am +
             volume_ratios['carbon'] * materials['SuperP']['density'] +
-            volume_ratios['binder'] * materials[self.binder]['density']
+            volume_ratios['binder'] * materials['binders'][self.binder]['density']
         )
 
     def calculate_areal_capacity(self):
@@ -125,8 +141,8 @@ class Tab:
     density_anode: float = field(init=False)
 
     def __post_init__(self):
-        self.density_cathode = materials.get(self.material_cathode)['density']
-        self.density_anode = materials.get(self.material_anode)['density']
+        self.density_cathode = materials['tabs'].get(self.material_cathode)['density']
+        self.density_anode = materials['tabs'].get(self.material_anode)['density']
 
 
 @dataclass
@@ -192,8 +208,8 @@ class Cell:
         anode_mass = anode_volume * self.anode.density
         separator_mass = separator_volume * self.separator.density
         pouch_mass = pouch_volume * self.format.density
-        cathode_cc_mass = cathode_cc_volume * materials[self.cathode.current_collector]['density']
-        anode_cc_mass = anode_cc_volume * materials[self.anode.current_collector]['density']
+        cathode_cc_mass = cathode_cc_volume * materials['current_collectors'][self.cathode.current_collector]['density']
+        anode_cc_mass = anode_cc_volume * materials['current_collectors'][self.anode.current_collector]['density']
         tabs_mass = self.tabs.height * self.tabs.width * self.tabs.thickness * (self.tabs.density_cathode + self.tabs.density_anode)
 
         # Calculate void volume for electrolyte

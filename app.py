@@ -2,7 +2,17 @@
 '''
 Created on 27/07/2024
 
-@author: Marcin Orzech
+@authors: Marcin Orzech, Ashley Willow
+
+This is a frontend of the app. 
+The app allows to quickly estimate critical parameters
+ of a battery cell performance
+based on set of inputs from user. 
+The results are reasonable, however the calculations
+don't take into account all details and factors, 
+especially related to power, cycle life or manufacturing.
+There are also limited constraints on some values, 
+but the user should always think if the inputs are realistic.
 '''
 
 # Import Python Libraries
@@ -34,19 +44,19 @@ def design_cell():
 
     with c1:
         st.write('### Cathode:')
-        cathode_am = st.selectbox('Cathode active material',['Prussian Blue'])
-        cathode_binder = st.selectbox('Binder type',['PVDF', 'CMC+SBR'])
+        cathode_am = st.selectbox('Cathode active material', materials['cathodes'].keys())
+        cathode_binder = st.selectbox('Binder type', materials['binders'].keys())
         porosity = st.slider('Porosity (%)', 0, 100, value=25)/100
-        voltage = st.slider('Voltage (V)',1.0, 5.0, step = 0.05, value=materials[cathode_am]['voltage'])
-        capacity = st.number_input('Capacity (mAh/g)',0,value=materials[cathode_am]['capacity'])
-        density_am = st.number_input('Active material density',0.0,value=materials[cathode_am]['density'])
+        voltage = st.slider('Voltage (V)',1.0, 5.0, step=0.05, value=materials['cathodes'][cathode_am]['voltage'])
+        capacity = st.number_input('Capacity (mAh/g)',0,value=materials['cathodes'][cathode_am]['capacity'])
+        density_am = st.number_input('Active material density',0.0,value=materials['cathodes'][cathode_am]['density'])
         thickness = st.slider('Cathode thickness (um)', 0, 150, value=80)
         cathode_placeholder = st.empty()
         width = st.number_input('Cathode width (mm)', 0, value=43)
         height = st.number_input('Cathode height (mm)', 0, value=56)
-        cathode_cc = st.selectbox('Cathode current collector',['Al', 'Cu'])
-        cathode_cc_thickness = st.number_input('Current collector thickness (um)',
-                                                value=materials[cathode_cc]['thickness'])
+        cathode_cc = st.selectbox('Cathode current collector',materials['current_collectors'].keys())
+        cathode_cc_thickness = st.number_input(
+            'Current collector thickness (um)',value=materials['current_collectors'][cathode_cc]['thickness'])
 
 
         st.write('#### Mass ratios:')
@@ -71,18 +81,18 @@ def design_cell():
 
     with c2:
         st.write('### Anode:')
-        anode_am = st.selectbox('Anode active material',['Hard Carbon'])
-        anode_binder = st.selectbox('Binder type',['PVDF', 'CMC+SBR'], index=1, key='anode_binder')
+        anode_am = st.selectbox('Anode active material',materials['anodes'].keys())
+        anode_binder = st.selectbox('Binder type',materials['binders'].keys(), index=1, key='anode_binder')
         anode_porosity = st.slider('Porosity (%)', 0, 100, value=25, key='anode_por')/100
-        anode_voltage = st.slider('Voltage (V)',0.0, 3.0, step = 0.05,value=materials[anode_am]['voltage'], key='anode_V')
-        anode_capacity = st.number_input('Capacity (mAh/g)',0,value=materials[anode_am]['capacity'], key='anode_cap')
-        anode_density_am = st.number_input('Active material density',0.0,value=materials[anode_am]['density'], key='anode_am_d')
+        anode_voltage = st.slider('Voltage (V)',0.0, 3.0, step = 0.05,value=materials['anodes'][anode_am]['voltage'], key='anode_V')
+        anode_capacity = st.number_input('Capacity (mAh/g)',0,value=materials['anodes'][anode_am]['capacity'], key='anode_cap')
+        anode_density_am = st.number_input('Active material density',0.0,value=materials['anodes'][anode_am]['density'], key='anode_am_d')
         placeholder = st.empty()
         st.info(f'Anode width (mm): {cathode.width*10 + 2:.0f}')
         st.info(f'Anode height (mm): {cathode.height*10 + 2:.0f}')
-        anode_cc = st.selectbox('Anode current collector',['Al', 'Cu'])
+        anode_cc = st.selectbox('Anode current collector',materials['current_collectors'].keys())
         anode_cc_thickness = st.number_input('Current collector thickness (um)', 
-                                            value=materials[anode_cc]['thickness'],
+                                            value=materials['current_collectors'][anode_cc]['thickness'],
                                             key='anode_cc_thickness')
 
         st.write('#### Mass ratios:')
@@ -108,12 +118,12 @@ def design_cell():
 
     with c3:
         st.write('### Separator:')
-        separator_name = st.selectbox('Separator name', ['Celgard 2325'])
-        separator_thickness = st.number_input('Separator thickness (um)', value=materials[separator_name]['thickness'])
+        separator_name = st.selectbox('Separator name', materials['separators'].keys())
+        separator_thickness = st.number_input('Separator thickness (um)', value=materials['separators'][separator_name]['thickness'])
         separator_porosity = st.slider('Separator porosity (%)', 0, 100,
-                                        value=int(materials[separator_name]['porosity']*100)) / 100
+                                        value=int(materials['separators'][separator_name]['porosity']*100)) / 100
         separator_density = st.number_input('Separator density (g/cm³)',
-                                            value=materials[separator_name]['density'])
+                                            value=materials['separators'][separator_name]['density'])
 
     separator = Separator(
         material=separator_name,
@@ -196,21 +206,21 @@ def design_cell():
 
 def print_cell_metrics(cell):
 
-    st.write('---')
-    st.header('Calculated Cell Performance:')
-    col1, col2, col3 = st.columns(3)
+    # st.write('---')
+    # st.header('Calculated Cell Performance:')
+    # col1, col2, col3 = st.columns(3)
 
-    with col1:
-        st.metric("Total Mass", f"{cell.total_mass:.2f} g")
-        st.metric("Total Volume", f"{cell.total_volume:.2f} cm³")
+    # with col1:
+    #     st.metric("Total Mass", f"{cell.total_mass:.2f} g")
+    #     st.metric("Total Volume", f"{cell.total_volume:.2f} cm³")
     
-    with col2:
-        st.metric("Capacity", f"{cell.capacity:.2f} Ah")
-        st.metric("Energy", f"{cell.energy:.2f} Wh")
+    # with col2:
+    #     st.metric("Capacity", f"{cell.capacity:.2f} Ah")
+    #     st.metric("Energy", f"{cell.energy:.2f} Wh")
 
-    with col3:
-        st.metric("Specific Energy", f"{cell.gravimetric_energy_density:.2f} Wh/kg")
-        st.metric("Energy Density", f"{cell.volumetric_energy_density:.2f} Wh/cm³")
+    # with col3:
+    #     st.metric("Specific Energy", f"{cell.gravimetric_energy_density:.2f} Wh/kg")
+    #     st.metric("Energy Density", f"{cell.volumetric_energy_density:.2f} Wh/cm³")
     
     with st.sidebar:
         st.write('# Calculated Cell Performance:')

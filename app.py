@@ -38,9 +38,10 @@ def design_cell():
         cathode_binder = st.selectbox('Binder type',['PVDF', 'CMC+SBR'])
         porosity = st.slider('Porosity (%)', 0, 100, value=25)/100
         voltage = st.slider('Voltage (V)',1.0, 5.0, step = 0.05, value=materials[cathode_am]['voltage'])
-        capacity = st.number_input('Capacity (Ah/kg)',0,value=materials[cathode_am]['capacity'])
+        capacity = st.number_input('Capacity (mAh/g)',0,value=materials[cathode_am]['capacity'])
         density_am = st.number_input('Active material density',0.0,value=materials[cathode_am]['density'])
         thickness = st.slider('Cathode thickness (um)', 0, 150, value=80)
+        cathode_placeholder = st.empty()
         width = st.number_input('Cathode width (mm)', 0, value=43)
         height = st.number_input('Cathode height (mm)', 0, value=56)
         cathode_cc = st.selectbox('Cathode current collector',['Al', 'Cu'])
@@ -74,7 +75,7 @@ def design_cell():
         anode_binder = st.selectbox('Binder type',['PVDF', 'CMC+SBR'], index=1, key='anode_binder')
         anode_porosity = st.slider('Porosity (%)', 0, 100, value=25, key='anode_por')/100
         anode_voltage = st.slider('Voltage (V)',0.0, 3.0, step = 0.05,value=materials[anode_am]['voltage'], key='anode_V')
-        anode_capacity = st.number_input('Capacity (Ah/kg)',0,value=materials[anode_am]['capacity'], key='anode_cap')
+        anode_capacity = st.number_input('Capacity (mAh/g)',0,value=materials[anode_am]['capacity'], key='anode_cap')
         anode_density_am = st.number_input('Active material density',0.0,value=materials[anode_am]['density'], key='anode_am_d')
         placeholder = st.empty()
         st.info(f'Anode width (mm): {cathode.width*10 + 2:.0f}')
@@ -175,23 +176,23 @@ def design_cell():
 
     designed_cell = Cell(cathode, anode, separator, electrolyte, pouch, tabs,
                         layers_number, n_p_ratio, ice)
-    # df_cell = pd.DataFrame([cathode, anode, separator, electrolyte, pouch, tabs],
-    #                     index=['cathode', 'anode', 'separator', 'electrolyte', 'pouch', 'tabs']).T
-    
-    # st.dataframe(df_cell, use_container_width=True)
-    placeholder.info(f'Anode Thickness (um): {anode.thickness*10000:.0f}')
+
+    df_cell = pd.DataFrame([cathode, anode, separator, electrolyte, pouch, tabs],
+                        index=['cathode', 'anode', 'separator', 'electrolyte', 'pouch', 'tabs']).T
+    st.dataframe(df_cell, use_container_width=True)
+
+    with cathode_placeholder.container():
+        st.info(f'AM mass loading (mg/cm2): {cathode.am_mass_loading:.1f}')
+        st.info(f'Areal capacity (mAh/cm2): {cathode.areal_capacity:.1f}')
+    with placeholder.container():
+        st.info(f'Anode Thickness (um): {anode.thickness*10000:.0f}')
+        st.info(f'AM mass loading (mg/cm2): {anode.am_mass_loading:.1f}')
+        st.info(f'Areal capacity (mAh/cm2): {anode.areal_capacity:.1f}')
     with calc_elec.container():
         st.info(f"Volume: {electrolyte.volume:.2f} mL")
         st.info(f"Volume per Ah: {electrolyte.volume_per_ah:.2f} mL/Ah")
 
-
-
     return designed_cell
-
-
-# def calculate_energy(cell_params):
-#     cell = cell_params
-#     cell.calculate_energy_density()
 
 def print_cell_metrics(cell):
 
@@ -220,11 +221,9 @@ def print_cell_metrics(cell):
         st.metric("Capacity", f"{cell.capacity:.2f} Ah")
         st.metric("Energy", f"{cell.energy:.2f} Wh")
 
-        st.metric("Specific Energy", f"{cell.gravimetric_energy_density:.2f} Wh/kg")
-        st.metric("Energy Density", f"{cell.volumetric_energy_density:.2f} Wh/cm³")
+        st.metric("Specific Energy", f"{cell.gravimetric_energy_density:.1f} Wh/kg")
+        st.metric("Energy Density", f"{cell.volumetric_energy_density:.1f} Wh/cm³")
 
 page_config()
 battery = design_cell()
-# calculate_energy(battery)
 print_cell_metrics(battery)
-

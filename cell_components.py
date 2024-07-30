@@ -64,11 +64,13 @@ class Electrode:
     tab_height: float = 1  # cm
     tab_width: float = 1  # cm
     density: float = field(init=False)
+    am_mass_loading: float = field(init=False)  # mg/cm2
     areal_capacity: float = field(init=False)  # mAh/cm²
 
     def __post_init__(self):
         self.calculate_composite_density()
         self.calculate_areal_capacity()
+        self.calculate_am_mass_loading()
 
     def calculate_composite_density(self):
         volumes = {
@@ -85,6 +87,9 @@ class Electrode:
 
     def calculate_areal_capacity(self):
         self.areal_capacity = self.density * self.thickness * self.capacity * self.mass_ratio['am']
+
+    def calculate_am_mass_loading(self):
+        self.am_mass_loading = self.density * self.thickness * self.mass_ratio['am'] * 1000
 
 @dataclass
 class Separator:
@@ -144,7 +149,6 @@ class Cell:
     total_mass: float = field(init=False)
     total_volume: float = field(init=False)
 
-
     def __post_init__(self):
         self.calculate_anode_properties()
         self.calculate_energy_density()
@@ -156,8 +160,9 @@ class Cell:
         self.anode.thickness = required_anode_capacity / (
             self.anode.density * self.anode.capacity * self.anode.mass_ratio['am'])
         
-        # Recalculate anode areal capacity
+        # Recalculate anode areal capacity and mass loading
         self.anode.calculate_areal_capacity()
+        self.anode.calculate_am_mass_loading()
 
     def calculate_energy_density(self):
         '''

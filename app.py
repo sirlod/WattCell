@@ -199,11 +199,6 @@ def design_cell():
                         layers_number, n_p_ratio, ice)
 
     if anode_free:
-        designed_cell.n_p_ratio = 1
-        designed_cell.anode.porosity = 0
-        designed_cell.anode.mass_ratio['am'] = 1
-        designed_cell.anode.mass_ratio['carbon'] = 0
-        designed_cell.anode.mass_ratio['binder'] = 0
         recalculate_anodefree_energy(designed_cell)
 
     df_cell = pd.DataFrame([cathode, anode, separator, electrolyte, pouch, tabs],
@@ -226,6 +221,11 @@ def design_cell():
 
 
 def recalculate_anodefree_energy(cell):
+    cell.n_p_ratio = 1
+    cell.anode.porosity = 0
+    cell.anode.mass_ratio['am'] = 1
+    cell.anode.mass_ratio['carbon'] = 0
+    cell.anode.mass_ratio['binder'] = 0
     cell.anode.calculate_composite_density()
     cell.anode.calculate_areal_capacity()
     cell.anode.calculate_am_mass_loading()

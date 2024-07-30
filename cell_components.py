@@ -29,6 +29,11 @@ materials = {
             'voltage': 0.1,
             'density': 1.6
         },
+        'Sodium metal':{
+            'capacity': 1166,
+            'voltage': 0.0,
+            'density': 0.971
+        }
     },
     'SuperP': {'density': 1.9},
     'binders':{
@@ -144,7 +149,6 @@ class Tab:
         self.density_cathode = materials['tabs'].get(self.material_cathode)['density']
         self.density_anode = materials['tabs'].get(self.material_anode)['density']
 
-
 @dataclass
 class Cell:
     cathode: Electrode
@@ -240,4 +244,10 @@ class Cell:
 
         # Calculate energy density and specific energy
         self.volumetric_energy_density = self.energy / self.total_volume * 1000  # Wh/L
+        self.gravimetric_energy_density = self.energy / self.total_mass * 1000  # Wh/kg
+
+    def anode_free_energy(self):
+        anode_volume = self.anode.width * self.anode.height * self.anode.thickness * (2 * self.layers_number + 2)
+        anode_mass = anode_volume * self.anode.density
+        self.total_mass = self.total_mass - anode_mass
         self.gravimetric_energy_density = self.energy / self.total_mass * 1000  # Wh/kg

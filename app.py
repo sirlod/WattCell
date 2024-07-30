@@ -24,6 +24,16 @@ from cell_components import materials, Electrode, Separator, Electrolyte, Pouch,
 
 config = {'displaylogo': False}
 
+# Initialize session state
+if 'anode_free' not in st.session_state:
+    st.session_state.anode_free = False
+
+
+# Callback function to update session state
+def is_anode_free():
+    st.session_state.anode_free = st.session_state.anode_free
+
+
 def page_config():
     '''Setups page settings and menu options.
     Must be called as first streamlit command.'''
@@ -83,7 +93,7 @@ def design_cell():
         st.write('### Anode:')
         anode_am = st.selectbox('Anode active material',materials['anodes'].keys())
         anode_binder = st.selectbox('Binder type',materials['binders'].keys(), index=1, key='anode_binder')
-        anode_porosity = st.slider('Porosity (%)', 0, 100, value=25, key='anode_por')/100
+        anode_porosity = st.slider('Porosity (%)', 0, 100, value=25, key='anode_por', disabled=st.session_state.anode_free)/100
         anode_voltage = st.slider('Voltage (V)',0.0, 3.0, step = 0.05,value=materials['anodes'][anode_am]['voltage'], key='anode_V')
         anode_capacity = st.number_input('Capacity (mAh/g)',0,value=materials['anodes'][anode_am]['capacity'], key='anode_cap')
         anode_density_am = st.number_input('Active material density',0.0,value=materials['anodes'][anode_am]['density'], key='anode_am_d')
@@ -96,8 +106,8 @@ def design_cell():
                                             key='anode_cc_thickness')
 
         st.write('#### Mass ratios:')
-        a_am = st.number_input('AM', 0, 100, value=96, key='anode_am')
-        a_carbon = st.number_input('carbon', 0, (100-a_am), value=(100-a_am), key='anode_c')
+        a_am = st.number_input('AM', 0, 100, value=96, key='anode_am', disabled=st.session_state.anode_free)
+        a_carbon = st.number_input('carbon', 0, (100-a_am), value=(100-a_am), key='anode_c', disabled=st.session_state.anode_free)
         a_binder = st.number_input('binder', value=int(100 - a_am - a_carbon), key='anode_b', disabled=True)
 
     anode = Electrode(
@@ -152,10 +162,11 @@ def design_cell():
 
     with c4:
         st.write('### Cell Configuration:')
-        layers_number = st.slider('Number of layers', 1, 30, value=20, step=1)
-        n_p_ratio = st.slider('N/P Ratio', 0.0, 1.5, value=1.1, step=0.05)
+        anode_free = st.checkbox('Anode free cell', key='anode_free', on_change=is_anode_free, help='Will set n/p to 1, porosity of anode to 0% and anode AM mass ratio to 100%')
+        layers_number = st.slider('Number of layers', 1, 40, value=20, step=1)
+        n_p_ratio = st.slider('N/P Ratio', 0.0, 1.5, value=1.1, step=0.05, disabled=anode_free)
         ice = st.slider('Initial Coulombic Efficiency (%)', 50, 100, value=93) / 100
-        
+
         '---'
         st.write('### Pouch:')
         pouch_thickness = st.number_input('Pouch thickness (um)', value=materials['pouch']['thickness'])
@@ -187,10 +198,19 @@ def design_cell():
     designed_cell = Cell(cathode, anode, separator, electrolyte, pouch, tabs,
                         layers_number, n_p_ratio, ice)
 
+    if anode_free:
+        designed_cell.n_p_ratio = 1
+        designed_cell.anode.porosity = 0
+        designed_cell.anode.mass_ratio['am'] = 1
+        designed_cell.anode.mass_ratio['carbon'] = 0
+        designed_cell.anode.mass_ratio['binder'] = 0
+        recalculate_anodefree_energy(designed_cell)
+
     df_cell = pd.DataFrame([cathode, anode, separator, electrolyte, pouch, tabs],
                         index=['cathode', 'anode', 'separator', 'electrolyte', 'pouch', 'tabs']).T
     st.dataframe(df_cell, use_container_width=True)
 
+    # insert calculated cell values to the layout
     with cathode_placeholder.container():
         st.info(f'AM mass loading (mg/cm2): {cathode.am_mass_loading:.1f}')
         st.info(f'Areal capacity (mAh/cm2): {cathode.areal_capacity:.1f}')
@@ -203,6 +223,16 @@ def design_cell():
         st.info(f"Volume per Ah: {electrolyte.volume_per_ah:.2f} mL/Ah")
 
     return designed_cell
+
+
+def recalculate_anodefree_energy(cell):
+    cell.anode.calculate_composite_density()
+    cell.anode.calculate_areal_capacity()
+    cell.anode.calculate_am_mass_loading()
+    cell.calculate_anode_properties()
+    cell.calculate_energy_density()
+    cell.anode_free_energy()
+
 
 def print_cell_metrics(cell):
 
@@ -233,6 +263,7 @@ def print_cell_metrics(cell):
 
         st.metric("Specific Energy", f"{cell.gravimetric_energy_density:.1f} Wh/kg")
         st.metric("Energy Density", f"{cell.volumetric_energy_density:.1f} Wh/cm³")
+
 
 page_config()
 battery = design_cell()

@@ -296,7 +296,8 @@ def energy_density_graph(cell):
 page_config()
 battery = design_cell()
 print_cell_metrics(battery)
+'---'
 energy_density_graph(battery)
 
-df = pd.DataFrame([battery]).T
-st.dataframe(df, use_container_width=True)
+# df = pd.DataFrame([battery]).T
+# st.dataframe(df, use_container_width=True)

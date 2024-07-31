@@ -71,7 +71,7 @@ def design_cell():
 
         st.write('#### Mass ratios:')
         c_am = st.number_input('AM', 0, 100, value=96)
-        c_carbon = st.number_input('carbon', 0, (100-c_am), value=(100-c_am))
+        c_carbon = st.number_input('carbon', 0, (100-c_am), value=int((100-c_am)/2))
         c_binder = st.number_input('binder', value=int(100 - c_am - c_carbon), disabled=True)
 
     cathode = Electrode(
@@ -107,7 +107,7 @@ def design_cell():
 
         st.write('#### Mass ratios:')
         a_am = st.number_input('AM', 0, 100, value=96, key='anode_am', disabled=st.session_state.anode_free)
-        a_carbon = st.number_input('carbon', 0, (100-a_am), value=(100-a_am), key='anode_c', disabled=st.session_state.anode_free)
+        a_carbon = st.number_input('carbon', 0, (100-a_am), value=int((100-a_am)/2), key='anode_c', disabled=st.session_state.anode_free)
         a_binder = st.number_input('binder', value=int(100 - a_am - a_carbon), key='anode_b', disabled=True)
 
     anode = Electrode(

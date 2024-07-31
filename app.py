@@ -20,6 +20,7 @@ import pandas as pd
 import streamlit as st
 # import plotly.express as px
 from cell_components import materials, Electrode, Separator, Electrolyte, Pouch, Tab, Cell
+from graphs import generate_energy_density_data, plot_energy_density, save_data_to_csv
 
 
 config = {'displaylogo': False}
@@ -151,7 +152,7 @@ def design_cell():
         electrolyte_density = st.number_input(
             'Electrolyte density (g/cm³)',
             value=materials['electrolytes'][electrolyte_type]['density'])
-        electrolyte_excess = st.slider('Excess electrolyte (%)', -20, 50, value=0)/100
+        electrolyte_excess = st.slider('Excess electrolyte (%)', 0, 50, value=0)/100
         calc_elec = st.empty()
 
         electrolyte = Electrolyte(
@@ -201,9 +202,9 @@ def design_cell():
     if anode_free:
         recalculate_anodefree_energy(designed_cell)
 
-    df_cell = pd.DataFrame([cathode, anode, separator, electrolyte, pouch, tabs],
-                        index=['cathode', 'anode', 'separator', 'electrolyte', 'pouch', 'tabs']).T
-    st.dataframe(df_cell, use_container_width=True)
+    # df_cell = pd.DataFrame([cathode, anode, separator, electrolyte, pouch, tabs],
+    #                     index=['cathode', 'anode', 'separator', 'electrolyte', 'pouch', 'tabs']).T
+    # st.dataframe(df_cell, use_container_width=True)
 
     # insert calculated cell values to the layout
     with cathode_placeholder.container():
@@ -227,8 +228,6 @@ def recalculate_anodefree_energy(cell):
     cell.anode.mass_ratio['carbon'] = 0
     cell.anode.mass_ratio['binder'] = 0
     cell.anode.calculate_composite_density()
-    cell.anode.calculate_areal_capacity()
-    cell.anode.calculate_am_mass_loading()
     cell.calculate_anode_properties()
     cell.calculate_energy_density()
     cell.anode_free_energy()
@@ -262,9 +261,42 @@ def print_cell_metrics(cell):
         st.metric("Energy", f"{cell.energy:.2f} Wh")
 
         st.metric("Specific Energy", f"{cell.gravimetric_energy_density:.1f} Wh/kg")
-        st.metric("Energy Density", f"{cell.volumetric_energy_density:.1f} Wh/cm³")
+        st.metric("Energy Density", f"{cell.volumetric_energy_density:.1f} Wh/L")
 
+
+def energy_density_graph(cell):
+    st.header('Energy Density Graph')
+    parameters = ['Number of layers', 'Cathode thickness (um)', 'Cathode porosity (%)', 'Cathode capacity (mAh/g)']
+    parameter = st.selectbox('Select parameter to vary', parameters)
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        start = st.number_input('Start value', value=1)
+    with col2:
+        end = st.number_input('End value', value=100)
+    
+    steps = st.slider('Number of steps', min_value=10, max_value=100, value=50)
+    
+    if st.button('Generate Graph'):
+        x_values, gravimetric_energy_density, volumetric_energy_density = generate_energy_density_data(
+            cell, parameter, start, end, steps)
+        
+        fig = plot_energy_density(x_values, gravimetric_energy_density, volumetric_energy_density, parameter)
+        st.plotly_chart(fig, use_container_width=True)
+        
+        graph_data = save_data_to_csv(x_values, gravimetric_energy_density, volumetric_energy_density, parameter)
+        st.download_button(
+            label="Download data as CSV",
+            data=graph_data,
+            file_name=f"energy_density_vs_{parameter}.csv",
+            mime="text/csv"
+        )
 
 page_config()
 battery = design_cell()
 print_cell_metrics(battery)
+energy_density_graph(battery)
+
+df = pd.DataFrame([battery]).T
+st.dataframe(df, use_container_width=True)

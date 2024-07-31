@@ -280,7 +280,7 @@ def energy_density_graph(cell):
     
     if st.button('Generate Graph'):
         x_values, gravimetric_energy_density, volumetric_energy_density = generate_energy_density_data(
-            cell, parameter, start, end, steps)
+            cell, parameter, start, end, steps, st.session_state.anode_free)
         
         fig = plot_energy_density(x_values, gravimetric_energy_density, volumetric_energy_density, parameter)
         st.plotly_chart(fig, use_container_width=True)

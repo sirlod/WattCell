@@ -2,7 +2,7 @@ import numpy as np
 import plotly.graph_objects as go
 import pandas as pd
 
-def generate_energy_density_data(cell, parameter, start, end, steps):
+def generate_energy_density_data(cell, parameter, start, end, steps, anodefree):
     x_values = np.linspace(start, end, steps)
     gravimetric_energy_density = []
     volumetric_energy_density = []
@@ -22,6 +22,8 @@ def generate_energy_density_data(cell, parameter, start, end, steps):
         cell.cathode.calculate_areal_capacity()
         cell.calculate_anode_properties()
         cell.calculate_energy_density()
+        if anodefree:
+            cell.anode_free_energy()
         
         gravimetric_energy_density.append(cell.gravimetric_energy_density)
         volumetric_energy_density.append(cell.volumetric_energy_density)

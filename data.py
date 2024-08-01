@@ -11,10 +11,10 @@ materials = {
         }
     },
     'anodes':{
-        'Hard Carbon': {
-            'capacity': 300,
+        'Hard Carbon': {  # from KURANODE
+            'capacity': 332,
             'voltage': 0.1,
-            'density': 1.6
+            'density': 1.48
         },
         'Sodium metal':{
             'capacity': 1166,
@@ -26,6 +26,7 @@ materials = {
     'binders':{
         'PVDF': {'density': 1.78},
         'CMC+SBR': {'density': (1.6+0.96)/2},
+        'CMC': {'density': 1.6},
     },
     'separators':{
         'Celgard 2325': {

@@ -124,6 +124,7 @@ class Cell:
     capacity: float = field(init=False)
     total_mass: float = field(init=False)
     total_volume: float = field(init=False)
+    total_thickness: float = field(init=False)
 
     def __post_init__(self):
         self.calculate_anode_properties()
@@ -228,7 +229,7 @@ class Cell:
         )
         electrolyte_mass = self.electrolyte.volume * self.electrolyte.density
 
-        # Calculate total mass and volume
+        # Calculate total mass, volume and thickness
         self.total_mass = (
             cathode_mass
             + cathode_cc_mass
@@ -248,6 +249,7 @@ class Cell:
             + anode_cc_volume
             + cathode_cc_volume
         )
+        self.total_thickness = 10 * self.total_volume / (self.separator.width * self.separator.height)
 
         # Calculate capacity (based on the limiting electrode)
         cathode_capacity = (

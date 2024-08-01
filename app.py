@@ -262,6 +262,7 @@ def design_cell():
             help='Will set n/p to 1, porosity of anode to 0% and anode AM mass ratio to 100%',
         )
         layers_number = st.slider('Number of layers', 1, 40, value=20, step=1)
+        cell_t_placeholder = st.empty()
         n_p_ratio = st.slider(
             'N/P Ratio', 0.0, 1.5, value=1.1, step=0.05, disabled=anode_free
         )
@@ -328,6 +329,8 @@ def design_cell():
     with calc_elec.container():
         st.info(f'Volume: {electrolyte.volume:.2f} mL')
         st.info(f'Volume per Ah: {electrolyte.volume_per_ah:.2f} mL/Ah')
+    with cell_t_placeholder.container():
+        st.info(f'Cell thickness: {designed_cell.total_thickness:.1f} mm')
 
     return designed_cell
 

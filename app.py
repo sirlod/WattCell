@@ -20,8 +20,7 @@ import pandas as pd
 import streamlit as st
 # import plotly.express as px
 from cell_components import materials, Electrode, Separator, Electrolyte, Pouch, Tab, Cell
-from graphs import generate_energy_density_data, plot_energy_density, save_data_to_csv
-
+from graphs import generate_energy_density_data, plot_energy_density
 
 config = {'displaylogo': False}
 
@@ -235,22 +234,6 @@ def recalculate_anodefree_energy(cell):
 
 def print_cell_metrics(cell):
 
-    # st.write('---')
-    # st.header('Calculated Cell Performance:')
-    # col1, col2, col3 = st.columns(3)
-
-    # with col1:
-    #     st.metric("Total Mass", f"{cell.total_mass:.2f} g")
-    #     st.metric("Total Volume", f"{cell.total_volume:.2f} cm³")
-    
-    # with col2:
-    #     st.metric("Capacity", f"{cell.capacity:.2f} Ah")
-    #     st.metric("Energy", f"{cell.energy:.2f} Wh")
-
-    # with col3:
-    #     st.metric("Specific Energy", f"{cell.gravimetric_energy_density:.2f} Wh/kg")
-    #     st.metric("Energy Density", f"{cell.volumetric_energy_density:.2f} Wh/cm³")
-    
     with st.sidebar:
         st.write('# Calculated Cell Performance:')
 
@@ -279,16 +262,14 @@ def energy_density_graph(cell):
     steps = st.slider('Number of steps', min_value=10, max_value=100, value=50)
     
     if st.button('Generate Graph'):
-        x_values, gravimetric_energy_density, volumetric_energy_density = generate_energy_density_data(
-            cell, parameter, start, end, steps, st.session_state.anode_free)
-        
-        fig = plot_energy_density(x_values, gravimetric_energy_density, volumetric_energy_density, parameter)
+        df = generate_energy_density_data(cell, parameter, start, end, steps, st.session_state.anode_free)
+
+        fig = plot_energy_density(df, parameter)
         st.plotly_chart(fig, use_container_width=True)
         
-        graph_data = save_data_to_csv(x_values, gravimetric_energy_density, volumetric_energy_density, parameter)
         st.download_button(
             label="Download data as CSV",
-            data=graph_data,
+            data=df.to_csv().encode("utf-8"),
             file_name=f"energy_density_vs_{parameter}.csv",
             mime="text/csv"
         )
@@ -299,5 +280,5 @@ print_cell_metrics(battery)
 '---'
 energy_density_graph(battery)
 
-# df = pd.DataFrame([battery]).T
-# st.dataframe(df, use_container_width=True)
+df = pd.DataFrame([battery])
+st.dataframe(df, use_container_width=True)

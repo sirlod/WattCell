@@ -1,10 +1,10 @@
 materials = {
     'current_collectors': {
         'Al': {'density': 2.7, 'thickness': 16},  # thickness in um
-        'Cu': {'density': 8.94, 'thickness': 6},  # thickness in um
+        'Cu': {'density': 8.94, 'thickness': 8},  # thickness in um
     },
     'cathodes':{
-        'Prussian Blue': {
+        'Prussian Blue (Na)': {
             'density': 1.8,  # in g/cm3
             'capacity': 150,  # in Ah/kg
             'voltage': 3.2  # in V
@@ -82,6 +82,9 @@ materials = {
         },
         'Ni': {
             'density': 8.9
+        },
+        'Cu': {
+            'density': 8.94
         }
     },
     'electrolytes': {

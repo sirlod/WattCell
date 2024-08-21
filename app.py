@@ -59,49 +59,58 @@ def design_cell():
     st.header('Cell Properties:')
     c1, c2, c3, c4 = st.columns(4)
 
+    # collect user inputs
     with c1:
         st.write('### Cathode:')
         cathode_am = st.selectbox(
             'Cathode active material', materials['cathodes'].keys()
         )
-        cathode_binder = st.selectbox('Binder type', materials['binders'].keys())
+        cathode_binder = st.selectbox(
+            'Binder type', materials['binders'].keys()
+            )
         porosity = st.slider('Porosity (%)', 0, 100, value=25) / 100
         voltage = st.slider(
-            'Voltage (V)',
-            1.0,
-            5.0,
-            step=0.05,
-            value=materials['cathodes'][cathode_am]['voltage'],
+            'Voltage (V)', 1.0, 5.0, step=0.05,
+            value=materials['cathodes'][cathode_am]['voltage']
         )
         capacity = st.number_input(
-            'Capacity (mAh/g)', 0, value=materials['cathodes'][cathode_am]['capacity']
+            'Capacity (mAh/g)', 0, value=materials['cathodes'][cathode_am]['capacity'],
+            help='First cycle charge capacity'
         )
         density_am = st.number_input(
             'Active material density',
             0.0,
             value=materials['cathodes'][cathode_am]['density'],
         )
-        thickness = st.slider('Cathode thickness (um)', 0, 150, value=80)
+        thickness = st.slider(
+            'Cathode thickness (um)', 0, 150, value=80,
+            help='Thickness of the coating'
+            )
         cathode_placeholder = st.empty()
-        width = st.number_input('Cathode width (mm)', 0, value=43)
-        height = st.number_input('Cathode height (mm)', 0, value=56)
+        width = st.number_input('Cathode width (mm)', 0, value=150)
+        height = st.number_input('Cathode height (mm)', 0, value=400)
         cathode_cc = st.selectbox(
-            'Cathode current collector', materials['current_collectors'].keys()
+            'Cathode current collector', materials['current_collectors'].keys(),
+            help='For cathode almost always Aluminium foil is used'
         )
         cathode_cc_thickness = st.number_input(
             'Current collector thickness (um)',
-            value=materials['current_collectors'][cathode_cc]['thickness'],
+            value=materials['current_collectors'][cathode_cc]['thickness']
         )
 
         st.write('#### Mass ratios:')
-        c_am = st.number_input('AM', 0, 100, value=96)
+        c_am = st.number_input(
+            'AM', 0, 100, value=95, help='Active Material'
+            )
         c_carbon = st.number_input(
             'carbon', 0, (100 - c_am), value=int((100 - c_am) / 2)
         )
         c_binder = st.number_input(
-            'binder', value=int(100 - c_am - c_carbon), disabled=True
+            'binder', value=int(100 - c_am - c_carbon), disabled=True,
+            help='Value calculated'
         )
 
+    # write inputs into the object
     cathode = Electrode(
         active_material=cathode_am,
         mass_ratio={
@@ -121,6 +130,7 @@ def design_cell():
         cc_thickness=cathode_cc_thickness / 10000,
     )
 
+    # collect user inputs
     with c2:
         st.write('### Anode:')
         anode_am = st.selectbox('Anode active material', materials['anodes'].keys())
@@ -129,12 +139,8 @@ def design_cell():
         )
         anode_porosity = (
             st.slider(
-                'Porosity (%)',
-                0,
-                100,
-                value=25,
-                key='anode_por',
-                disabled=st.session_state.anode_free,
+                'Porosity (%)', 0, 100, value=25,
+                key='anode_por', disabled=st.session_state.anode_free
             )
             / 100
         )
@@ -151,6 +157,7 @@ def design_cell():
             0,
             value=materials['anodes'][anode_am]['capacity'],
             key='anode_cap',
+            help='First cycle charge capacity'
         )
         anode_density_am = st.number_input(
             'Active material density',
@@ -162,7 +169,8 @@ def design_cell():
         st.info(f'Anode width (mm): {cathode.width*10 + 2:.0f}')
         st.info(f'Anode height (mm): {cathode.height*10 + 2:.0f}')
         anode_cc = st.selectbox(
-            'Anode current collector', materials['current_collectors'].keys()
+            'Anode current collector', materials['current_collectors'].keys(),
+            help='Typically Cu for Li-ion and Al for Na-ion'
         )
         anode_cc_thickness = st.number_input(
             'Current collector thickness (um)',
@@ -172,7 +180,9 @@ def design_cell():
 
         st.write('#### Mass ratios:')
         a_am = st.number_input(
-            'AM', 0, 100, value=96, key='anode_am', disabled=st.session_state.anode_free
+            'AM', 0, 100, value=96, key='anode_am',
+            help='Active Material',
+            disabled=st.session_state.anode_free
         )
         a_carbon = st.number_input(
             'carbon',
@@ -183,9 +193,12 @@ def design_cell():
             disabled=st.session_state.anode_free,
         )
         a_binder = st.number_input(
-            'binder', value=int(100 - a_am - a_carbon), key='anode_b', disabled=True
+            'binder', value=int(100 - a_am - a_carbon),
+            key='anode_b', disabled=True,
+            help='Value calculated'
         )
 
+    # write inputs into the object
     anode = Electrode(
         active_material=anode_am,
         current_collector=anode_cc,
@@ -204,18 +217,19 @@ def design_cell():
         cc_thickness=anode_cc_thickness / 10000,
     )
 
+    # collect user inputs
     with c3:
         st.write('### Separator:')
-        separator_name = st.selectbox('Separator name', materials['separators'].keys())
+        separator_name = st.selectbox(
+            'Separator name', materials['separators'].keys()
+            )
         separator_thickness = st.number_input(
             'Separator thickness (um)',
             value=materials['separators'][separator_name]['thickness'],
         )
         separator_porosity = (
             st.slider(
-                'Separator porosity (%)',
-                0,
-                100,
+                'Separator porosity (%)', 0, 100,
                 value=int(materials['separators'][separator_name]['porosity'] * 100),
             )
             / 100
@@ -225,6 +239,7 @@ def design_cell():
             value=materials['separators'][separator_name]['density'],
         )
 
+    # write inputs into the object
     separator = Separator(
         material=separator_name,
         width=anode.width,
@@ -234,6 +249,7 @@ def design_cell():
         density=separator_density,
     )
 
+    # collect user inputs
     with c3:
         '---'
         st.write('### Electrolyte:')
@@ -259,14 +275,22 @@ def design_cell():
             'Anode free cell',
             key='anode_free',
             on_change=is_anode_free,
-            help='Will set n/p to 1, porosity of anode to 0% and anode AM mass ratio to 100%',
+            help='''
+            Will set n/p to 1,
+            porosity of anode to 0% and anode AM mass ratio to 100%. 
+            User still has to select correct Anode active material 
+            (Li or Na metal).
+            ''',
         )
-        layers_number = st.slider('Number of layers', 1, 40, value=20, step=1)
+        layers_number = st.slider('Number of layers', 1, 40, value=30, step=1)
         cell_t_placeholder = st.empty()
         n_p_ratio = st.slider(
             'N/P Ratio', 0.0, 1.5, value=1.1, step=0.05, disabled=anode_free
         )
-        ice = st.slider('Initial Coulombic Efficiency (%)', 50, 100, value=93) / 100
+        ice = st.slider(
+            'Initial Coulombic Efficiency (%)', 50, 100, value=93,
+            help='Consider first cycle loses of both cathode and anode.'
+            ) / 100
 
         '---'
         st.write('### Pouch:')
@@ -280,15 +304,18 @@ def design_cell():
         '---'
         st.write('### Tabs:')
         tabs_material_cathode = st.selectbox(
-            'Cathode tab material', materials['tabs'].keys()
+            'Cathode tab material', materials['tabs'].keys(),
+            help='Typically Aluminium for cathode'
         )
         tabs_material_anode = st.selectbox(
-            'Anode tab material', materials['tabs'].keys()
+            'Anode tab material', materials['tabs'].keys(),
+            help='Typically Nickel for anode'
         )
-        tabs_height = st.number_input('Tabs height (mm)', value=80)
-        tabs_width = st.number_input('Tabs width (mm)', value=8)
-        tabs_thickness = st.number_input('Tabs thickness (mm)', value=0.2)
+        tabs_height = st.number_input('Tabs height (mm)', value=20)
+        tabs_width = st.number_input('Tabs width (mm)', value=50)
+        tabs_thickness = st.number_input('Tabs thickness (mm)', value=0.5)
 
+    # write inputs into the object
     pouch = Pouch(
         width=separator.width + materials['pouch']['extra_width'],
         height=separator.height + materials['pouch']['extra_height'],

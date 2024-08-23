@@ -4,15 +4,6 @@ Created on 27/07/2024
 
 @authors: Marcin Orzech, Ashley Willow
 
-This is a frontend of the app. 
-The app allows to quickly estimate critical parameters
- of a battery cell performance
-based on set of inputs from user. 
-The results are reasonable, however the calculations
-don't take into account all details and factors, 
-especially related to power, cycle life or manufacturing.
-There are also limited constraints on some values, 
-but the user should always think if the inputs are realistic.
 '''
 
 # Import Python Libraries
@@ -24,6 +15,7 @@ from cell_components import (
     Separator,
     Electrolyte,
     Pouch,
+    Cylindrical,
     Tab,
     Cell,
 )
@@ -34,11 +26,16 @@ config = {'displaylogo': False}
 # Initialize session state
 if 'anode_free' not in st.session_state:
     st.session_state.anode_free = False
-
+if 'cell_format' not in st.session_state:
+    st.session_state.cell_format = 'Pouch'
 
 # Callback function to update session state
 def is_anode_free():
     st.session_state.anode_free = st.session_state.anode_free
+
+
+def set_cell_format():
+    st.session_state.cell_format = st.session_state.cell_format
 
 
 def page_config():
@@ -93,8 +90,12 @@ def design_cell():
             help='Thickness of the coating'
             )
         cathode_placeholder = st.empty()
-        width = st.number_input('Cathode width (mm)', 0, value=150)
-        height = st.number_input('Cathode height (mm)', 0, value=400)
+        if st.session_state.cell_format == 'Pouch':
+            width = st.number_input('Cathode width (mm)', 0, value=150)
+            height = st.number_input('Cathode height (mm)', 0, value=400)
+        else:
+            width = 0
+            height = 0
         cathode_cc = st.selectbox(
             'Cathode current collector', materials['current_collectors'].keys(),
             help='For cathode almost always Aluminium foil is used'
@@ -277,6 +278,16 @@ def design_cell():
 
     with c4:
         st.write('### Cell Configuration:')
+
+        cell_format = st.radio(
+            'Cell Format',
+            ['Pouch', 'Cylindrical'],
+            key='cell_format',
+            on_change=set_cell_format,
+            horizontal=True
+            )
+        '---'
+
         anode_free = st.checkbox(
             'Anode free cell',
             key='anode_free',
@@ -288,7 +299,8 @@ def design_cell():
             (Li or Na metal).
             ''',
         )
-        layers_number = st.slider('Number of layers', 1, 40, value=30, step=1)
+        if cell_format == 'Pouch':
+            layers_number = st.slider('Number of layers', 1, 40, value=30, step=1)
         cell_t_placeholder = st.empty()
         n_p_ratio = st.slider(
             'N/P Ratio', 0.0, 1.5, value=1.1, step=0.05, disabled=anode_free
@@ -299,49 +311,72 @@ def design_cell():
             ) / 100
 
         '---'
-        st.write('### Pouch:')
-        pouch_thickness = st.number_input(
-            'Pouch thickness (um)', value=materials['pouch']['thickness']
-        )
-        pouch_density = st.number_input(
-            'Pouch density (g/cm³)', value=materials['pouch']['density']
-        )
+        if cell_format == 'Pouch':
+            st.write('### Pouch:')
+            pouch_thickness = st.number_input(
+                'Pouch thickness (um)', value=materials['pouch']['thickness']
+            )
+            pouch_density = st.number_input(
+                'Pouch density (g/cm³)', value=materials['pouch']['density']
+            )
 
-        '---'
-        st.write('### Tabs:')
-        tabs_material_cathode = st.selectbox(
-            'Cathode tab material', materials['tabs'].keys(),
-            help='Typically Aluminium for cathode'
-        )
-        tabs_material_anode = st.selectbox(
-            'Anode tab material', materials['tabs'].keys(),
-            help='Typically Nickel for anode'
-        )
-        tabs_height = st.number_input('Tabs height (mm)', value=20)
-        tabs_width = st.number_input('Tabs width (mm)', value=50)
-        tabs_thickness = st.number_input('Tabs thickness (mm)', value=0.5)
+            '---'
+            st.write('### Tabs:')
+            tabs_material_cathode = st.selectbox(
+                'Cathode tab material', materials['tabs'].keys(),
+                help='Typically Aluminium for cathode'
+            )
+            tabs_material_anode = st.selectbox(
+                'Anode tab material', materials['tabs'].keys(),
+                help='Typically Nickel for anode'
+            )
+            tabs_height = st.number_input('Tabs height (mm)', value=20)
+            tabs_width = st.number_input('Tabs width (mm)', value=50)
+            tabs_thickness = st.number_input('Tabs thickness (mm)', value=0.5)
+        else:
+            st.write('### Cylindrical can:')
+            cylinder_diameter = st.number_input('Diameter (mm)', value=18)
+            cylinder_height = st.number_input('Height (mm)', value=65)
+            cylinder_can_thickness = st.number_input('Can thickness (um)', value=170)
+            cylinder_can_density = st.number_input('Can density (g/cm³)', value=7.85)
+            cylinder_mandrel_diam = st.number_input('Mandrel diameter (mm)', value=2)
+            cylinder_headspace = st.number_input('Headspace (mm)', value=5)
 
     # write inputs into the object
-    pouch = Pouch(
-        width=separator.width + materials['pouch']['extra_width'],
-        height=separator.height + materials['pouch']['extra_height'],
-        thickness=pouch_thickness / 10000,
-        density=pouch_density,
-    )
-    tabs = Tab(
+    if cell_format == 'Pouch':
+        format = Pouch(
+            width=separator.width + materials['pouch']['extra_width'],
+            height=separator.height + materials['pouch']['extra_height'],
+            thickness=pouch_thickness / 10000,
+            density=pouch_density,
+        )
+        tabs = Tab(
         material_cathode=tabs_material_cathode,
         material_anode=tabs_material_anode,
         height=tabs_height / 10,
         width=tabs_width / 10,
         thickness=tabs_thickness / 10,
-    )
+        )
+
+    else:
+        format = Cylindrical(
+            diameter=cylinder_diameter / 10,
+            height=cylinder_height / 10,
+            can_thickness=cylinder_can_thickness / 10000,
+            can_density=cylinder_can_density,
+            mandrel_diam=cylinder_mandrel_diam / 10,
+            headspace=cylinder_headspace / 10
+        )
+        tabs = Tab()
+        layers_number = 0
+
 
     designed_cell = Cell(
         cathode,
         anode,
         separator,
         electrolyte,
-        pouch,
+        format,
         tabs,
         layers_number,
         n_p_ratio,
@@ -353,17 +388,21 @@ def design_cell():
 
     # insert calculated cell values to the layout
     with cathode_placeholder.container():
-        st.info(f'AM mass loading (mg/cm2): {cathode.am_mass_loading:.1f}')
-        st.info(f'Areal capacity (mAh/cm2): {cathode.areal_capacity:.1f}')
+        st.info(f'AM mass loading: {cathode.am_mass_loading:.1f} mg/cm2')
+        st.info(f'Areal capacity: {cathode.areal_capacity:.1f} mAh/cm2')
+        if not st.session_state.cell_format == 'Pouch':
+            st.info(f'Cathode height: {cathode.height:.1f} mm')
+            st.info(f'Cathode length: {cathode.width:.1f} mm')
     with placeholder.container():
-        st.info(f'Anode Thickness (um): {anode.thickness*10000:.0f}')
-        st.info(f'AM mass loading (mg/cm2): {anode.am_mass_loading:.1f}')
-        st.info(f'Areal capacity (mAh/cm2): {anode.areal_capacity:.1f}')
+        st.info(f'Anode Thickness: {anode.thickness*10000:.0f} um')
+        st.info(f'AM mass loading: {anode.am_mass_loading:.1f} mg/cm2')
+        st.info(f'Areal capacity: {anode.areal_capacity:.1f} mAh/cm2')
     with calc_elec.container():
         st.info(f'Volume: {electrolyte.volume:.2f} mL')
         st.info(f'Volume per Ah: {electrolyte.volume_per_ah:.2f} mL/Ah')
     with cell_t_placeholder.container():
-        st.info(f'Cell thickness: {designed_cell.total_thickness:.1f} mm')
+        if cell_format == 'Pouch':
+            st.info(f'Cell thickness: {designed_cell.total_thickness:.1f} mm')
 
     return designed_cell
 

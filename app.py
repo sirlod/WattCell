@@ -54,6 +54,12 @@ def page_config():
     )
 
 
+def read_file(name):
+    with open(name, "r") as file:
+        text = file.read()
+    return text
+
+
 def design_cell():
 
     st.header('Cell Properties:')
@@ -427,6 +433,12 @@ def energy_density_graph(cell):
 
 
 page_config()
+
+st.title('WattCell')
+'---'
+# ABOUT = read_file("readme.md")
+# st.markdown(ABOUT)
+
 battery = design_cell()
 print_cell_metrics(battery)
 '---'

@@ -393,9 +393,11 @@ def energy_density_graph(cell):
     st.header('Energy Density Graph')
     parameters = [
         'Number of layers',
+        'Cell size (height of cathode)',
         'Cathode thickness (um)',
         'Cathode porosity (%)',
         'Cathode capacity (mAh/g)',
+        'Cathode voltage (V)'
     ]
     parameter = st.selectbox('Select parameter to vary', parameters)
 
@@ -430,5 +432,5 @@ print_cell_metrics(battery)
 '---'
 energy_density_graph(battery)
 
-df = pd.DataFrame([battery])
-st.dataframe(df, use_container_width=True)
+# df = pd.DataFrame([battery])
+# st.dataframe(df, use_container_width=True)

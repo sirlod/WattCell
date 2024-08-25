@@ -16,6 +16,7 @@ from cell_components import (
     Electrolyte,
     Pouch,
     Cylindrical,
+    Prismatic,
     Tab,
     Cell,
 )
@@ -280,7 +281,7 @@ def design_cell():
 
         cell_format = st.radio(
             'Cell Format',
-            ['Pouch', 'Cylindrical'],
+            ['Pouch', 'Cylindrical', 'Prismatic'],
             key='cell_format',
             on_change=set_cell_format,
             horizontal=True
@@ -336,7 +337,7 @@ def design_cell():
             tabs_height = st.number_input('Tabs height (mm)', value=20)
             tabs_width = st.number_input('Tabs width (mm)', value=50)
             tabs_thickness = st.number_input('Tabs thickness (mm)', value=0.5)
-        else:
+        elif cell_format == 'Cylindrical':
             st.write('### Cylindrical can:')
             cell_type = st.selectbox('Cell size', materials['formats']['cylindrical'])
             cylinder_diameter = st.number_input(
@@ -346,7 +347,7 @@ def design_cell():
                 'Height (mm)', value=materials['formats']['cylindrical'][cell_type]['height']
                 )
             cylinder_can_thickness = st.number_input(
-                'Can thickness (um)', value=materials['formats']['cylindrical'][cell_type]['can_thickness'] * 1000
+                'Can thickness (um)', value=materials['formats']['cylindrical'][cell_type]['can_thickness']
                 )
             can_material = st.radio('Can material', materials['can_density'])
             cylinder_can_density = st.number_input('Can density (g/cm³)', value=materials['can_density'][can_material])
@@ -356,10 +357,33 @@ def design_cell():
             cylinder_headspace = st.number_input(
                 'Headspace (mm)', value=materials['formats']['cylindrical'][cell_type]['headspace']
                 )
+        elif cell_format == 'Prismatic':
+            st.write('### Prismatic can:')
+            prismatic_width = st.number_input('Can width (mm)', value=173)
+            prismatic_height = st.number_input('Can height (mm)', value=115)
+            prismatic_depth = st.number_input('Can depth (mm)', value=45)
+            prismatic_can_thickness = st.number_input('Can wall thickness (mm)', value=1.1)
+            can_material = st.radio('Can material', materials['can_density'], index=1)
+            prismatic_can_density = st.number_input('Can density (g/cm³)', value=materials['can_density'][can_material])
+            prismatic_headspace = st.number_input('Headspace (mm)', value=5)
+
+            '---'
+            st.write('### Tabs:')
+            tabs_material_cathode = st.selectbox(
+                'Cathode tab material', materials['tabs'].keys(),
+                help='Typically Aluminium for cathode'
+            )
+            tabs_material_anode = st.selectbox(
+                'Anode tab material', materials['tabs'].keys(),
+                help='Typically Nickel for anode'
+            )
+            tabs_height = st.number_input('Tabs height (mm)', value=20)
+            tabs_width = st.number_input('Tabs width (mm)', value=30)
+            tabs_thickness = st.number_input('Tabs thickness (mm)', value=0.5)
 
     # write inputs into the object
-    if cell_format == 'Pouch':
-        format = Pouch(
+    if st.session_state.cell_format == 'Pouch':
+        cell_format = Pouch(
             width=separator.width + materials['formats']['pouch']['extra_width'],
             height=separator.height + materials['formats']['pouch']['extra_height'],
             thickness=pouch_thickness / 10000,
@@ -373,17 +397,34 @@ def design_cell():
             thickness=tabs_thickness / 10,
             )
 
-    else:
-        format = Cylindrical(
+    elif st.session_state.cell_format == 'Cylindrical':
+        cell_format = Cylindrical(
             diameter=cylinder_diameter / 10,
             height=cylinder_height / 10,
-            can_thickness=cylinder_can_thickness / 10000,
+            can_thickness=cylinder_can_thickness / 10,
             can_density=cylinder_can_density,
             mandrel_diam=cylinder_mandrel_diam / 10,
             headspace=cylinder_headspace / 10
         )
         tabs = Tab()
         layers_number = None
+    elif st.session_state.cell_format == 'Prismatic':
+        cell_format = Prismatic(
+            width=prismatic_width / 10,
+            height=prismatic_height / 10,
+            depth=prismatic_depth / 10,
+            can_thickness=prismatic_can_thickness / 10,
+            can_density=prismatic_can_density,
+            headspace=prismatic_headspace / 10
+        )
+        tabs = Tab(
+            material_cathode=tabs_material_cathode,
+            material_anode=tabs_material_anode,
+            height=tabs_height / 10,
+            width=tabs_width / 10,
+            thickness=tabs_thickness / 10,
+        )
+        layers_number = None  # Layers will be calculated in the Cell class
 
 
     designed_cell = Cell(
@@ -391,7 +432,7 @@ def design_cell():
         anode,
         separator,
         electrolyte,
-        format,
+        cell_format,
         tabs,
         layers_number,
         n_p_ratio,

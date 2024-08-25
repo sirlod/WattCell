@@ -99,6 +99,17 @@ class Cylindrical:
     mandrel_diam: float = 0.2  # cm
     headspace: float = 0.5 # cm
 
+
+@dataclass
+class Prismatic:
+    width: float  # cm
+    height: float  # cm
+    depth: float  # cm
+    can_thickness: float  # cm
+    can_density: float  # g/cm³
+    headspace: float  # cm
+
+
 @dataclass
 class Tab:
     material_cathode: str = 'None'
@@ -120,7 +131,7 @@ class Cell:
     anode: Electrode
     separator: Separator
     electrolyte: Electrolyte
-    format: Union[Pouch, Cylindrical]
+    format: Union[Pouch, Cylindrical, Prismatic]
     tabs: Tab
     layers_number: int = 30
     n_p_ratio: float = 1.1
@@ -167,6 +178,8 @@ class Cell:
             self.calculate_pouch_energy()
         elif isinstance(self.format, Cylindrical):
             self.calculate_cylindrical_energy()
+        elif isinstance(self.format, Prismatic):
+            self.calculate_prismatic_energy()
 
         # Calculate volume of electrolyte per Ah
         self.electrolyte.volume_per_ah = (
@@ -401,8 +414,127 @@ class Cell:
         self.capacity = min(cathode_capacity, anode_capacity) * self.ice
 
 
+    def calculate_prismatic_energy(self):
+        # Calculate stack thickness
+        stack_thickness = (
+            2 * self.cathode.thickness
+            + self.cathode.cc_thickness
+            + 2 * self.anode.thickness
+            + self.anode.cc_thickness
+            + 2 * self.separator.thickness
+        )
+
+        # Calculate number of layers
+        available_depth = self.format.depth - 2 * self.format.can_thickness - 4 * self.separator.thickness - self.anode.thickness - self.anode.cc_thickness
+        self.layers_number = int(available_depth / stack_thickness)
+
+        # Calculate electrode and separator dimensions
+        self.cathode.width = self.format.width - 2 * self.format.can_thickness - 0.4
+        self.cathode.height = self.format.height - 2 * self.format.can_thickness - self.format.headspace - 0.4
+
+        self.anode.width = self.cathode.width + 0.2
+        self.anode.height = self.cathode.height + 0.2
+        self.separator.width = self.cathode.width + 0.4
+        self.separator.height = self.cathode.height + 0.4
+
+        # Calculate volumes of individual items (cm3)
+        cathode_volume = (
+            self.cathode.width
+            * self.cathode.height
+            * self.cathode.thickness
+            * 2
+            * self.layers_number
+        )
+        anode_volume = (
+            self.anode.width
+            * self.anode.height
+            * self.anode.thickness
+            * (2 * self.layers_number + 2)  # Extra anode layer
+        )
+        separator_volume = (
+            self.separator.width
+            * self.separator.height
+            * self.separator.thickness
+            * 2
+            * self.layers_number
+        )
+        can_volume = (
+            self.format.width * self.format.height * self.format.depth
+            - ((self.format.width - 2 * self.format.can_thickness)
+            * (self.format.height - 2 * self.format.can_thickness)
+            * (self.format.depth - 2 * self.format.can_thickness))
+        )
+        anode_cc_volume = (
+            (self.layers_number + 1)  # Extra anode current collector
+            * (self.anode.width * self.anode.height)
+            * self.anode.cc_thickness
+        )
+        cathode_cc_volume = (
+            self.layers_number
+            * (self.cathode.width * self.cathode.height)
+            * self.cathode.cc_thickness
+        )
+
+        # Calculate masses (g)
+        cathode_mass = cathode_volume * self.cathode.density
+        anode_mass = anode_volume * self.anode.density
+        separator_mass = separator_volume * self.separator.density
+        can_mass = can_volume * self.format.can_density
+        cathode_cc_mass = (
+            cathode_cc_volume
+            * materials['current_collectors'][self.cathode.current_collector]['density']
+        )
+        anode_cc_mass = (
+            anode_cc_volume
+            * materials['current_collectors'][self.anode.current_collector]['density']
+        )
+        tabs_mass = (
+            self.tabs.height
+            * self.tabs.width
+            * self.tabs.thickness
+            * (self.tabs.density_cathode + self.tabs.density_anode)
+        )
+
+        # Calculate void volume for electrolyte
+        cathode_void_volume = cathode_volume * self.cathode.porosity
+        anode_void_volume = anode_volume * self.anode.porosity
+        separator_void_volume = separator_volume * self.separator.porosity
+        total_void_volume = (
+            cathode_void_volume + anode_void_volume + separator_void_volume
+        )
+
+        # Calculate electrolyte mass and volume
+        self.electrolyte.volume = total_void_volume * (
+            1 + self.electrolyte.volume_excess
+        )
+        electrolyte_mass = self.electrolyte.volume * self.electrolyte.density
+
+        # Calculate total mass and volume
+        self.total_mass = (
+            cathode_mass
+            + cathode_cc_mass
+            + anode_mass
+            + anode_cc_mass
+            + separator_mass
+            + can_mass
+            + tabs_mass
+            + electrolyte_mass
+            + self.extra_mass
+        )
+        self.total_volume = self.format.width * self.format.height * self.format.depth
+
+        # Calculate capacity (based on the limiting electrode)
+        cathode_capacity = (
+            cathode_mass * self.cathode.mass_ratio['am'] * self.cathode.capacity / 1000
+        )  # Convert to Ah
+        anode_capacity = (
+            anode_mass * self.anode.mass_ratio['am'] * self.anode.capacity / 1000
+        )  # Convert to Ah
+        self.capacity = min(cathode_capacity, anode_capacity) * self.ice
+
+
     def anode_free_energy(self):
-        if isinstance(self.format, Pouch):
+        if isinstance(self.format, Pouch or Prismatic):
             anode_volume = (
             self.anode.width
             * self.anode.height

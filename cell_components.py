@@ -101,11 +101,11 @@ class Cylindrical:
 
 @dataclass
 class Tab:
-    material_cathode: str = 'Ni'
-    material_anode: str = 'Al'
-    height: float = 2  # cm
-    width: float = 5  # cm
-    thickness: float = 0.5  # cm
+    material_cathode: str = 'None'
+    material_anode: str = 'None'
+    height: float = None # cm
+    width: float = None  # cm
+    thickness: float = None # cm
     density_cathode: float = field(init=False)
     density_anode: float = field(init=False)
 
@@ -125,6 +125,7 @@ class Cell:
     layers_number: int = 30
     n_p_ratio: float = 1.1
     ice: float = 0.93
+    extra_mass: float = 4
 
     # attributes to store calculation results
     volumetric_energy_density: float = field(init=False)
@@ -268,6 +269,7 @@ class Cell:
             + pouch_mass
             + tabs_mass
             + electrolyte_mass
+            + self.extra_mass
         )
         self.total_volume = (
             cathode_volume
@@ -278,7 +280,13 @@ class Cell:
             + anode_cc_volume
             + cathode_cc_volume
         )
-        self.total_thickness = 10 * self.total_volume / (self.separator.width * self.separator.height)
+        self.total_thickness = 10 * (
+            2 * self.cathode.thickness
+            + self.cathode.cc_thickness
+            + 2 * self.anode.thickness
+            + self.anode.cc_thickness
+            + 2 * self.separator.thickness
+        ) * self.layers_number
 
         # Calculate capacity (based on the limiting electrode)
         cathode_capacity = (
@@ -318,8 +326,8 @@ class Cell:
         length_jellyroll = total_length - length_inner_void
 
         # Calculate length (width) of each component
-        self.cathode.width = length_jellyroll - 2  # 2cm shorter than separator
-        self.anode.width = length_jellyroll - 1  # 1cm shorter than separator
+        self.cathode.width = length_jellyroll - 2 * self.format.diameter * np.pi # 2 turns less than separator
+        self.anode.width = length_jellyroll - self.format.diameter * np.pi  # 1 turn less than separator
         self.separator.width = length_jellyroll
 
         # Calculate height of components
@@ -379,6 +387,7 @@ class Cell:
             + separator_mass
             + can_mass
             + electrolyte_mass
+            + self.extra_mass
         )
         self.total_volume = np.pi * (self.format.diameter / 2) ** 2 * self.format.height
 

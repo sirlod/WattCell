@@ -165,11 +165,36 @@ materials = {
             'density': 0.88  # in g/cm³ from https://core.ac.uk/download/pdf/288499223.pdf
         }
     },
-    'pouch': {
-        'thickness': 113,  # in um
-        'density': 1.62,  # in g/cm³
-        'extra_width': 0.9,  # in cm
-        'extra_height': 2  # in cm
+    'formats':{
+        'pouch': {
+            'thickness': 113,  # in um
+            'density': 1.62,  # in g/cm³
+            'extra_width': 0.9,  # in cm
+            'extra_height': 2  # in cm
+        },
+        'cylindrical': {
+            '18650': {
+                'diameter': 18,  # mm
+                'height': 65,  # mm
+                'can_thickness': 0.2,  # mm
+                'mandrel_dia': 1.5,  # mm
+                'headspace': 5.0  # mm
+            },
+            '21700': {
+                'diameter': 21, 
+                'height': 70,
+                'can_thickness': 0.25,  
+                'mandrel_dia': 2.0,
+                'headspace': 5.0  
+            },
+            '4680': {  # https://iopscience.iop.org/article/10.1149/1945-7111/ad14d0
+                'diameter': 46,
+                'height': 80,
+                'can_thickness': 0.5,
+                'mandrel_dia': 5.0,
+                'headspace': 8.0
+            }
+        }
     },
     'tabs': {
         'Al': {
@@ -180,6 +205,9 @@ materials = {
         },
         'Cu': {
             'density': 8.94
+        },
+        'None': {
+            'density': 0.0
         }
     },
     'electrolytes': {
@@ -192,5 +220,9 @@ materials = {
         '1.1M LiPF6 in EC:EMC': {
         'density': 1.2  # https://github.com/ndrewwang/BotB/blob/main/3.%20BotB%20The%20Cell%20Stack.ipynb
         },
+    },
+    'can_density':{
+        'Stainless steel': 7.98,
+        'Aluminium': 2.7
     }
 }

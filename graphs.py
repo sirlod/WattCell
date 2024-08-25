@@ -18,7 +18,7 @@ def generate_energy_density_data(cell, parameter, start, end, steps, anodefree):
             cell_copy.anode.height = cell_copy.cathode.height + 0.2
             cell_copy.separator.height = cell_copy.anode.height + 0.2
             from data import materials
-            cell_copy.format.height=cell_copy.separator.height + materials['pouch']['extra_height']
+            cell_copy.format.height=cell_copy.separator.height + materials['formats']['pouch']['extra_height']
         elif parameter == 'Cathode thickness (um)':
             cell_copy.cathode.thickness = x / 10000  # Convert um to cm
         elif parameter == 'Cathode porosity (%)':
@@ -27,6 +27,8 @@ def generate_energy_density_data(cell, parameter, start, end, steps, anodefree):
             cell_copy.cathode.capacity = x
         elif parameter == 'Cathode voltage (V)':
             cell_copy.cathode.voltage = x
+        elif parameter == 'Extra mass (g)':
+            cell_copy.extra_mass = x
         
         cell_copy.anode.calculate_composite_density()
         cell_copy.cathode.calculate_composite_density()

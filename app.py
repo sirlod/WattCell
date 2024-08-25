@@ -172,9 +172,8 @@ def design_cell():
             value=materials['anodes'][anode_am]['density'],
             key='anode_am_d',
         )
-        placeholder = st.empty()
-        st.info(f'Anode width (mm): {cathode.width*10 + 2:.0f}')
-        st.info(f'Anode height (mm): {cathode.height*10 + 2:.0f}')
+        # calculated values will be inserted in layout here
+        anode_placeholder = st.empty()
         anode_cc = st.selectbox(
             'Anode current collector', materials['current_collectors'].keys(),
             help='Typically Cu for Li-ion and Al for Na-ion'
@@ -301,7 +300,7 @@ def design_cell():
         )
         if cell_format == 'Pouch':
             layers_number = st.slider('Number of layers', 1, 40, value=30, step=1)
-        cell_t_placeholder = st.empty()
+        cell_t_placeholder = st.empty()  # placeholder to insert calculated thickness
         n_p_ratio = st.slider(
             'N/P Ratio', 0.0, 1.5, value=1.1, step=0.05, disabled=anode_free
         )
@@ -309,15 +308,19 @@ def design_cell():
             'Initial Coulombic Efficiency (%)', 50, 100, value=93,
             help='Consider first cycle loses of both cathode and anode.'
             ) / 100
+        extra_mass = st.number_input(
+            'Extra mass (g)', value=3,
+            help='Unaccounted mass of the tape, tabs (except pouch), vents, seals, and other small components'
+            )
 
         '---'
         if cell_format == 'Pouch':
             st.write('### Pouch:')
             pouch_thickness = st.number_input(
-                'Pouch thickness (um)', value=materials['pouch']['thickness']
+                'Pouch thickness (um)', value=materials['formats']['pouch']['thickness']
             )
             pouch_density = st.number_input(
-                'Pouch density (g/cm³)', value=materials['pouch']['density']
+                'Pouch density (g/cm³)', value=materials['formats']['pouch']['density']
             )
 
             '---'
@@ -335,28 +338,40 @@ def design_cell():
             tabs_thickness = st.number_input('Tabs thickness (mm)', value=0.5)
         else:
             st.write('### Cylindrical can:')
-            cylinder_diameter = st.number_input('Diameter (mm)', value=18)
-            cylinder_height = st.number_input('Height (mm)', value=65)
-            cylinder_can_thickness = st.number_input('Can thickness (um)', value=170)
-            cylinder_can_density = st.number_input('Can density (g/cm³)', value=7.85)
-            cylinder_mandrel_diam = st.number_input('Mandrel diameter (mm)', value=2)
-            cylinder_headspace = st.number_input('Headspace (mm)', value=5)
+            cell_type = st.selectbox('Cell size', materials['formats']['cylindrical'])
+            cylinder_diameter = st.number_input(
+                'Diameter (mm)', value=materials['formats']['cylindrical'][cell_type]['diameter']
+                )
+            cylinder_height = st.number_input(
+                'Height (mm)', value=materials['formats']['cylindrical'][cell_type]['height']
+                )
+            cylinder_can_thickness = st.number_input(
+                'Can thickness (um)', value=materials['formats']['cylindrical'][cell_type]['can_thickness'] * 1000
+                )
+            can_material = st.radio('Can material', materials['can_density'])
+            cylinder_can_density = st.number_input('Can density (g/cm³)', value=materials['can_density'][can_material])
+            cylinder_mandrel_diam = st.number_input(
+                'Mandrel diameter (mm)', value=materials['formats']['cylindrical'][cell_type]['mandrel_dia']
+                )
+            cylinder_headspace = st.number_input(
+                'Headspace (mm)', value=materials['formats']['cylindrical'][cell_type]['headspace']
+                )
 
     # write inputs into the object
     if cell_format == 'Pouch':
         format = Pouch(
-            width=separator.width + materials['pouch']['extra_width'],
-            height=separator.height + materials['pouch']['extra_height'],
+            width=separator.width + materials['formats']['pouch']['extra_width'],
+            height=separator.height + materials['formats']['pouch']['extra_height'],
             thickness=pouch_thickness / 10000,
             density=pouch_density,
         )
         tabs = Tab(
-        material_cathode=tabs_material_cathode,
-        material_anode=tabs_material_anode,
-        height=tabs_height / 10,
-        width=tabs_width / 10,
-        thickness=tabs_thickness / 10,
-        )
+            material_cathode=tabs_material_cathode,
+            material_anode=tabs_material_anode,
+            height=tabs_height / 10,
+            width=tabs_width / 10,
+            thickness=tabs_thickness / 10,
+            )
 
     else:
         format = Cylindrical(
@@ -368,7 +383,7 @@ def design_cell():
             headspace=cylinder_headspace / 10
         )
         tabs = Tab()
-        layers_number = 0
+        layers_number = None
 
 
     designed_cell = Cell(
@@ -381,6 +396,7 @@ def design_cell():
         layers_number,
         n_p_ratio,
         ice,
+        extra_mass
     )
 
     if anode_free:
@@ -391,18 +407,22 @@ def design_cell():
         st.info(f'AM mass loading: {cathode.am_mass_loading:.1f} mg/cm2')
         st.info(f'Areal capacity: {cathode.areal_capacity:.1f} mAh/cm2')
         if not st.session_state.cell_format == 'Pouch':
-            st.info(f'Cathode height: {cathode.height:.1f} mm')
-            st.info(f'Cathode length: {cathode.width:.1f} mm')
-    with placeholder.container():
+            st.info(f'Cathode height: {cathode.height*10:.0f} mm')
+            st.info(f'Cathode length: {cathode.width*10:.0f} mm')
+    with anode_placeholder.container():
         st.info(f'Anode Thickness: {anode.thickness*10000:.0f} um')
         st.info(f'AM mass loading: {anode.am_mass_loading:.1f} mg/cm2')
         st.info(f'Areal capacity: {anode.areal_capacity:.1f} mAh/cm2')
+        st.info(f'Anode height: {anode.height*10:.0f} mm')
+        st.info(f'Anode width(length): {anode.width*10:.0f} mm')
     with calc_elec.container():
         st.info(f'Volume: {electrolyte.volume:.2f} mL')
         st.info(f'Volume per Ah: {electrolyte.volume_per_ah:.2f} mL/Ah')
     with cell_t_placeholder.container():
         if cell_format == 'Pouch':
             st.info(f'Cell thickness: {designed_cell.total_thickness:.1f} mm')
+        else:
+            designed_cell.total_thickness = None
 
     return designed_cell
 
@@ -437,13 +457,25 @@ def print_cell_metrics(cell):
 def energy_density_graph(cell):
     st.header('Energy Density Graph')
     parameters = [
-        'Number of layers',
-        'Cell size (height of cathode)',
         'Cathode thickness (um)',
         'Cathode porosity (%)',
         'Cathode capacity (mAh/g)',
         'Cathode voltage (V)'
     ]
+    if st.session_state.cell_format == 'Pouch':
+        for p in [
+            'Cell size (height of cathode)',
+            'Number of layers'
+            ]:
+            parameters.insert(0, p)
+        # parameters = [
+        #     'Number of layers',
+        #     'Cell size (height of cathode)'    
+        #     ] + parameters
+    if st.session_state.cell_format == 'Cylindrical':
+        for p in ['Extra mass (g)']:
+            parameters.insert(0, p)
+
     parameter = st.selectbox('Select parameter to vary', parameters)
 
     col1, col2 = st.columns(2)
@@ -483,5 +515,5 @@ print_cell_metrics(battery)
 '---'
 energy_density_graph(battery)
 
-# df = pd.DataFrame([battery])
-# st.dataframe(df, use_container_width=True)
+df = pd.DataFrame([battery])
+st.dataframe(df, use_container_width=True)

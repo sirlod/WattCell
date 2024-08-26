@@ -279,14 +279,14 @@ def design_cell():
     with c4:
         st.write('### Cell Configuration:')
 
-        cell_format = st.radio(
+        cell_format_selector = st.radio(
             'Cell Format',
             ['Pouch', 'Cylindrical', 'Prismatic'],
             key='cell_format',
             on_change=set_cell_format,
             horizontal=True
             )
-        if cell_format == 'Prismatic':
+        if st.session_state.cell_format == 'Prismatic':
             structure = st.radio('Cell structure', ['Wound', 'Z-stacked'], label_visibility='hidden')
         '---'
 
@@ -301,7 +301,7 @@ def design_cell():
             (Li or Na metal).
             ''',
         )
-        if cell_format == 'Pouch':
+        if st.session_state.cell_format == 'Pouch':
             layers_number = st.slider('Number of layers', 1, 40, value=30, step=1)
         cell_t_placeholder = st.empty()  # placeholder to insert calculated thickness
         n_p_ratio = st.slider(
@@ -317,7 +317,7 @@ def design_cell():
             )
 
         '---'
-        if cell_format == 'Pouch':
+        if st.session_state.cell_format == 'Pouch':
             st.write('### Pouch:')
             pouch_thickness = st.number_input(
                 'Pouch thickness (um)', value=materials['formats']['pouch']['thickness']
@@ -339,7 +339,7 @@ def design_cell():
             tabs_height = st.number_input('Tabs height (mm)', value=20)
             tabs_width = st.number_input('Tabs width (mm)', value=50)
             tabs_thickness = st.number_input('Tabs thickness (mm)', value=0.5)
-        elif cell_format == 'Cylindrical':
+        elif st.session_state.cell_format == 'Cylindrical':
             st.write('### Cylindrical can:')
             cell_type = st.selectbox('Cell size', materials['formats']['cylindrical'])
             cylinder_diameter = st.number_input(
@@ -359,7 +359,7 @@ def design_cell():
             cylinder_headspace = st.number_input(
                 'Headspace (mm)', value=materials['formats']['cylindrical'][cell_type]['headspace']
                 )
-        elif cell_format == 'Prismatic':
+        elif st.session_state.cell_format == 'Prismatic':
             st.write('### Prismatic can:')
             prismatic_width = st.number_input('Can width (mm)', value=173)
             prismatic_height = st.number_input('Can height (mm)', value=115)
@@ -463,7 +463,7 @@ def design_cell():
         st.info(f'Volume: {electrolyte.volume:.2f} mL')
         st.info(f'Volume per Ah: {electrolyte.volume_per_ah:.2f} mL/Ah')
     with cell_t_placeholder.container():
-        if cell_format == 'Pouch':
+        if st.session_state.cell_format == 'Pouch':
             st.info(f'Cell thickness: {designed_cell.total_thickness:.1f} mm')
         else:
             designed_cell.total_thickness = None
@@ -559,8 +559,11 @@ st.title('WattCell')
 
 battery = design_cell()
 print_cell_metrics(battery)
+with st.expander('Designed cell - all data'):
+    df = pd.DataFrame([battery])
+    st.dataframe(df, use_container_width=True)
+
 '---'
 energy_density_graph(battery)
 
-df = pd.DataFrame([battery])
-st.dataframe(df, use_container_width=True)
+

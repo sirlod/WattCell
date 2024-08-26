@@ -102,6 +102,7 @@ class Cylindrical:
 
 @dataclass
 class Prismatic:
+    structure: str
     width: float  # cm
     height: float  # cm
     depth: float  # cm
@@ -424,18 +425,37 @@ class Cell:
             + 2 * self.separator.thickness
         )
 
+        # only matters for wound
+        # Calculate jelly roll dimensions
+        d = min(self.format.width, self.format.depth)
+        d_jellyroll = d - 2 * self.format.can_thickness - 2 * self.separator.thickness 
+
+        # Calculate number of turns
+        a = stack_thickness / (2 * np.pi)
+        theta = (d_jellyroll / 2) * (2 * np.pi) / stack_thickness
+        length_jellyroll = (a / 2) * (
+            theta * (1 + theta**2) ** 0.5 + np.log(theta + (1 + theta**2) ** 0.5)
+        )
+
         # Calculate number of layers
         available_depth = self.format.depth - 2 * self.format.can_thickness - 4 * self.separator.thickness - self.anode.thickness - self.anode.cc_thickness
         self.layers_number = int(available_depth / stack_thickness)
 
         # Calculate electrode and separator dimensions
-        self.cathode.width = self.format.width - 2 * self.format.can_thickness - 0.4
-        self.cathode.height = self.format.height - 2 * self.format.can_thickness - self.format.headspace - 0.4
+        if self.format.structure == 'Wound':
+            flat_width = self.format.width - d_jellyroll - 2 * self.format.can_thickness
+            self.separator.width = length_jellyroll + (self.layers_number + 1) * flat_width
+            self.cathode.width = length_jellyroll + self.layers_number * flat_width - 2 * d_jellyroll * np.pi   # 2 turns less than separator
+            self.anode.width = length_jellyroll + (self.layers_number + 1) * flat_width - d_jellyroll * np.pi  # 1 turn less than separator
+            self.layers_number = 1  # reset layers nr
+        else:
+            self.cathode.width = self.format.width - 2 * self.format.can_thickness - 0.4
+            self.anode.width = self.cathode.width + 0.2
+            self.separator.width = self.cathode.width + 0.4
 
-        self.anode.width = self.cathode.width + 0.2
-        self.anode.height = self.cathode.height + 0.2
-        self.separator.width = self.cathode.width + 0.4
-        self.separator.height = self.cathode.height + 0.4
+        self.cathode.height = self.format.height - 2 * self.format.can_thickness - self.format.headspace - 0.4
+        self.anode.height = self.format.height - 2 * self.format.can_thickness - self.format.headspace - 0.2
+        self.separator.height = self.format.height - 2 * self.format.can_thickness - self.format.headspace
 
         # Calculate volumes of individual items (cm3)
         cathode_volume = (
@@ -445,12 +465,21 @@ class Cell:
             * 2
             * self.layers_number
         )
-        anode_volume = (
-            self.anode.width
-            * self.anode.height
-            * self.anode.thickness
-            * (2 * self.layers_number + 2)  # Extra anode layer
-        )
+        if self.format.structure == 'Wound':
+            anode_volume = (
+                self.anode.width
+                * self.anode.height
+                * self.anode.thickness
+                * 2
+            )
+        else:
+            anode_volume = (
+                self.anode.width
+                * self.anode.height
+                * self.anode.thickness
+                * 2
+                * (self.layers_number + 1)  # Extra anode layer
+            )
         separator_volume = (
             self.separator.width
             * self.separator.height
@@ -464,11 +493,18 @@ class Cell:
             * (self.format.height - 2 * self.format.can_thickness)
             * (self.format.depth - 2 * self.format.can_thickness))
         )
-        anode_cc_volume = (
-            (self.layers_number + 1)  # Extra anode current collector
-            * (self.anode.width * self.anode.height)
-            * self.anode.cc_thickness
-        )
+        if self.format.structure == 'Wound':
+            anode_cc_volume = (
+                self.anode.width
+                * self.anode.height
+                * self.anode.cc_thickness
+            )
+        else:
+            anode_cc_volume = (
+                (self.layers_number + 1)  # Extra anode current collector
+                * (self.anode.width * self.anode.height)
+                * self.anode.cc_thickness
+            )
         cathode_cc_volume = (
             self.layers_number
             * (self.cathode.width * self.cathode.height)
@@ -534,12 +570,13 @@ class Cell:
 
 
     def anode_free_energy(self):
-        if isinstance(self.format, Pouch or Prismatic):
+        if isinstance(self.format, Pouch):
             anode_volume = (
             self.anode.width
             * self.anode.height
             * self.anode.thickness
-            * (2 * self.layers_number + 2)
+            * 2
+            * (self.layers_number + 1)
             )
         elif isinstance(self.format, Cylindrical):
             anode_volume = (
@@ -547,6 +584,22 @@ class Cell:
             * self.anode.height
             * self.anode.thickness
             )
+        elif isinstance(self.format, Prismatic):
+            if self.format.structure == 'Wound':
+                anode_volume = (
+                self.anode.width
+                * self.anode.height
+                * self.anode.thickness
+                * 2
+                )
+            else:
+                anode_volume = (
+                self.anode.width
+                * self.anode.height
+                * self.anode.thickness
+                * 2
+                * (self.layers_number + 1)
+                )
 
         anode_mass = anode_volume * self.anode.density
         self.total_mass = self.total_mass - anode_mass

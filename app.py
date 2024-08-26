@@ -286,6 +286,8 @@ def design_cell():
             on_change=set_cell_format,
             horizontal=True
             )
+        if cell_format == 'Prismatic':
+            structure = st.radio('Cell structure', ['Wound', 'Z-stacked'], label_visibility='hidden')
         '---'
 
         anode_free = st.checkbox(
@@ -347,7 +349,7 @@ def design_cell():
                 'Height (mm)', value=materials['formats']['cylindrical'][cell_type]['height']
                 )
             cylinder_can_thickness = st.number_input(
-                'Can thickness (um)', value=materials['formats']['cylindrical'][cell_type]['can_thickness']
+                'Can thickness (mm)', value=materials['formats']['cylindrical'][cell_type]['can_thickness']
                 )
             can_material = st.radio('Can material', materials['can_density'])
             cylinder_can_density = st.number_input('Can density (g/cm³)', value=materials['can_density'][can_material])
@@ -410,6 +412,7 @@ def design_cell():
         layers_number = None
     elif st.session_state.cell_format == 'Prismatic':
         cell_format = Prismatic(
+            structure=structure,
             width=prismatic_width / 10,
             height=prismatic_height / 10,
             depth=prismatic_depth / 10,
@@ -515,6 +518,9 @@ def energy_density_graph(cell):
         #     ] + parameters
     if st.session_state.cell_format == 'Cylindrical':
         for p in ['Extra mass (g)']:
+            parameters.insert(0, p)
+    if st.session_state.cell_format == 'Prismatic':
+        for p in ['Can size (height) (mm)']:
             parameters.insert(0, p)
 
     parameter = st.selectbox('Select parameter to vary', parameters)

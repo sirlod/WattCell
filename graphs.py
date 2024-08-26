@@ -29,6 +29,8 @@ def generate_energy_density_data(cell, parameter, start, end, steps, anodefree):
             cell_copy.cathode.voltage = x
         elif parameter == 'Extra mass (g)':
             cell_copy.extra_mass = x
+        elif parameter == 'Can size (height) (mm)':
+            cell_copy.format.height = x
         
         cell_copy.anode.calculate_composite_density()
         cell_copy.cathode.calculate_composite_density()

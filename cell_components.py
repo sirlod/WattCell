@@ -209,7 +209,8 @@ class Cell:
             self.anode.width
             * self.anode.height
             * self.anode.thickness
-            * (2 * self.layers_number + 2)  # Extra anode layer
+            * 2
+            * (self.layers_number + 1)  # Extra anode layer
         )
         separator_volume = (
             self.separator.width
@@ -225,8 +226,7 @@ class Cell:
             (self.layers_number + 1)  # Extra anode current collector
             * (
                 self.anode.width * self.anode.height
-                + self.anode.tab_height
-                + self.anode.tab_width
+                + (self.anode.tab_height * self.anode.tab_width)
             )
             * self.anode.cc_thickness
         )

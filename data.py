@@ -5,7 +5,7 @@ materials = {
     },
     'cathodes':{
         'Prussian Blue': {
-            'density': 1.8,  # in g/cm3
+            'density': 2.3,  # in g/cm3
             'capacity': 150,  # in Ah/kg
             'voltage': 3.2  # in V
         }

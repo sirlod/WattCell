@@ -363,7 +363,7 @@ def design_cell():
             st.write('### Prismatic can:')
             prismatic_width = st.number_input('Can width (mm)', value=173)
             prismatic_height = st.number_input('Can height (mm)', value=115)
-            prismatic_depth = st.number_input('Can depth (mm)', value=45)
+            prismatic_depth = st.number_input('Can depth (mm)', value=45.0, format="%0.1f")
             prismatic_can_thickness = st.number_input('Can wall thickness (mm)', value=1.1)
             can_material = st.radio('Can material', materials['can_density'], index=1)
             prismatic_can_density = st.number_input('Can density (g/cm³)', value=materials['can_density'][can_material])
